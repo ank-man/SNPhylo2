@@ -1,4 +1,4 @@
-# SNPhylo2
+# SNPhylo2: A Scalable, Modular, and Reproducible Pipeline for Phylogenetic Inference from Large-Scale SNP Datasets
 
 [![Version](https://img.shields.io/badge/version-0.1.0-blue)](https://github.com/ank-man/snphylo2)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/)
@@ -7,247 +7,289 @@
 [![Documentation](https://img.shields.io/badge/docs-mkdocs-blue)](https://snphylo2.readthedocs.io)
 
 <p align="center">
-  <img src="fig1.jpeg" alt="SNPhylo2 Workflow" width="800"/>
+  <img src="Fig1.jpg" alt="SNPhylo2 Workflow Diagram" width="800"/>
   <br>
-  <b>Figure 1:</b> SNPhylo2 analysis workflow from raw VCF to phylogenetic tree with population genomics analyses
+  <b>Figure 1.</b> SNPhylo2 analysis workflow. The pipeline processes raw VCF files through quality control, variant filtering, LD pruning, and phylogenetic tree construction, with integrated population genomics analyses including PCA, FST, and LD decay.
 </p>
 
-> **Next-Generation Phylogenomic Pipeline from SNP Data**
+## Overview
 
-SNPhylo2 is a modern, scalable, and reproducible pipeline for constructing phylogenetic trees from large SNP datasets. It represents a complete reimagining of the original [SNPhylo](https://github.com/thlee/SNPhylo) tool for the era of population-scale resequencing, pangenomics, and cloud computing.
+SNPhylo2 is a next-generation computational pipeline designed for phylogenomic inference from large-scale SNP datasets. This tool addresses the computational challenges of modern population-scale resequencing projects, supporting analyses from thousands to hundreds of thousands of samples with integrated population genomics capabilities.
 
----
+### Key Features
 
-## 🚀 Features
+- High-throughput processing of 10,000+ samples and 100M+ SNPs via chunked streaming architecture
+- Support for multiple input formats: VCF, BCF, PLINK binary, HapMap, and GDS
+- Integration with modern phylogenetic inference engines: IQ-TREE2, RAxML-NG, FastTree
+- Comprehensive population genomics module: PCA, FST, IBS matrices, and LD decay analysis (PopLDdecay-style)
+- Containerized deployment via Docker and Singularity
+- Workflow integration with Nextflow and Snakemake for HPC and cloud environments
+- Checkpoint and resume capability for long-running analyses
 
-- **🔄 Scalable**: Process 10,000+ samples and 100M+ SNPs with chunked streaming
-- **📊 Multiple Formats**: VCF, BCF, PLINK, HapMap, GDS, FASTA support
-- **🌳 Modern Tree Methods**: IQ-TREE2, RAxML-NG, FastTree, PhyML integration
-- **🧬 Population Genomics**: Built-in PCA, FST, IBS, kinship, LD decay (PopLDdecay-style)
-- **☁️ Cloud/HPC Ready**: Nextflow, Snakemake, Docker, Singularity workflows
-- **📈 Publication-Ready**: Automated HTML reports with high-quality figures
-- **🐍 Python-First**: Clean API with optional Rust backend for performance
+## System Requirements
 
----
+### Hardware Requirements
 
-## 📦 Installation
+| Component | Minimum | Recommended |
+|-----------|---------|-------------|
+| CPU | 4 cores | 16+ cores |
+| RAM | 8 GB | 32+ GB |
+| Storage | 50 GB | 200+ GB SSD |
+| Network | Standard | High-speed (for cloud) |
 
-### Option 1: Conda (Recommended)
+### Software Dependencies
+
+**Core Requirements:**
+- Python 3.10 or higher
+- Conda or Mamba package manager (recommended)
+
+**External Bioinformatics Tools:**
+- IQ-TREE2 (version 2.3.0+)
+- PLINK2 (version 2.0+)
+- BCFtools (version 1.19+)
+- Samtools (version 1.19+)
+
+**Optional Dependencies:**
+- R (version 4.3.0+) with packages: SNPRelate, gdsfmt, ggtree
+- Nextflow (version 21.0+)
+- Snakemake (version 7.0+)
+- Docker or Singularity/Apptainer
+
+## Installation
+
+### Method 1: Conda Installation (Recommended)
 
 ```bash
 conda install -c bioconda -c conda-forge snphylo2
 ```
 
-### Option 2: From Source
+This installs SNPhylo2 with all external dependencies (IQ-TREE2, PLINK2, BCFtools).
+
+### Method 2: Installation from Source
 
 ```bash
 git clone https://github.com/ank-man/snphylo2.git
 cd snphylo2
-pip install -e .
+pip install -e ".[dev]"
 ```
 
----
+Install external tools separately following their respective documentation.
 
-## 🏃 Quick Start
+### Method 3: Container Deployment
 
-### One-Command Analysis
+Docker:
+```bash
+docker pull ghcr.io/ank-man/snphylo2:latest
+docker run -v $(pwd):/data ghcr.io/ank-man/snphylo2:latest run -v /data/input.vcf.gz -o /data/results
+```
+
+Singularity/Apptainer (for HPC):
+```bash
+singularity pull docker://ghcr.io/ank-man/snphylo2:latest
+singularity run snphylo2_latest.sif run -v input.vcf.gz -o results/
+```
+
+## Quick Start
+
+### Complete Pipeline (One Command)
 
 ```bash
 snphylo2 run -v input.vcf.gz --threads 16 -o results/
 ```
 
-This executes the complete pipeline:
-1. Quality Control
-2. Variant Filtering (MAF, missingness, depth)
-3. LD Pruning (PLINK2 backend)
-4. Phylogenetic Tree Building (IQ-TREE2)
-5. Report Generation
+This executes: (1) Quality control, (2) Variant filtering, (3) LD pruning, (4) Phylogenetic tree construction, (5) HTML report generation.
 
 ### Step-by-Step Analysis
 
+**Step 1: Quality Control and Filtering**
 ```bash
-# 1. QC and filter variants
-snphylo2 filter -v input.vcf.gz -o filtered.vcf.gz --maf 0.05 --max-missing 0.2
+snphylo2 filter -v input.vcf.gz -o filtered.vcf.gz \
+    --maf 0.05 \
+    --max-missing 0.2 \
+    --min-depth 5
+```
 
-# 2. LD pruning
-snphylo2 prune -i filtered.vcf.gz -o pruned.vcf.gz --window 50 --r2 0.2
+**Step 2: Linkage Disequilibrium Pruning**
+```bash
+snphylo2 prune -i filtered.vcf.gz -o pruned.vcf.gz \
+    --window 50 \
+    --step 10 \
+    --r2 0.2
+```
 
-# 3. Build tree
-snphylo2 tree -i pruned.vcf.gz -o tree.nwk --engine iqtree2 --bootstrap 1000
+**Step 3: Phylogenetic Tree Construction**
+```bash
+snphylo2 tree -i pruned.vcf.gz -o tree.nwk \
+    --engine iqtree2 \
+    --model GTR+ASC \
+    --bootstrap 1000
+```
 
-# 4. Population genomics
+**Step 4: Population Genomics Analysis**
+```bash
 snphylo2 ld-decay -v input.vcf.gz -m metadata.tsv --plot
 ```
 
----
+## Detailed Workflow Description
 
-## 📊 What SNPhylo2 Does
+### Input Processing
 
-SNPhylo2 automates the entire phylogenomic analysis pipeline:
+SNPhylo2 accepts multiple input formats:
+- **VCF/BCF**: Standard variant call format (compressed and indexed)
+- **PLINK**: Binary format (.bed/.bim/.fam)
+- **HapMap**: Legacy haplotype map format
+- **GDS**: Genomic Data Structure format
+- **FASTA**: Sequence alignments
 
-| Step | Input | Output | Description |
-|------|-------|--------|-------------|
-| **QC** | Raw VCF | QC Report | Sample/variant quality metrics |
-| **Filter** | VCF | Filtered VCF | MAF, missingness, depth filtering |
-| **LD Prune** | Filtered VCF | Pruned VCF | Remove linked SNPs (r² threshold) |
-| **Tree** | Pruned SNPs | Newick tree | ML phylogeny with bootstrap |
-| **PopGen** | VCF + Metadata | PCA, FST, LD decay | Population structure analysis |
+### Quality Control Module
 
----
+Performs comprehensive dataset assessment:
+- Sample-level metrics: missingness, heterozygosity, depth distribution
+- Variant-level metrics: call rate, quality scores, allele frequencies
+- Transition/transversion ratio calculation
+- Sex checking (for diploid species with sex chromosomes)
+- Duplicate sample detection via IBS analysis
 
-## 📈 Comparison with Original SNPhylo
+### Variant Filtering
 
-| Feature | SNPhylo (2018) | SNPhylo2 |
-|---------|----------------|----------|
-| Max Samples | ~100 | ~100,000 |
-| Max SNPs | ~1M | ~100M |
-| Tree Engines | DNAML only | IQ-TREE2, RAxML-NG, FastTree |
-| LD Pruning | SNPRelate | PLINK2 (100x faster) |
-| Population Genomics | None | PCA, FST, IBS, LD decay |
-| Parallelization | Single-threaded | Chunked, HPC, Cloud |
-| Reporting | PNG tree | Full HTML dashboard |
-| Containerization | None | Docker, Singularity |
+Configurable filters:
+- Minor allele frequency (MAF) threshold
+- Maximum missingness per variant and per sample
+- Minimum read depth requirements
+- Genotype quality scores
+- Biallelic SNP filtering
+- Hardy-Weinberg equilibrium testing
+- Ts/Tv ratio filtering
 
----
+### Linkage Disequilibrium Pruning
 
-## 🎯 Key Capabilities
+Implements LD-based SNP pruning to reduce redundant information:
+- **Window-based pruning**: Sliding window with step size and r2 threshold
+- **Pairwise pruning**: PLINK2 indep-pairwise algorithm
+- **Tag SNP selection**: Information-maximizing subset selection
 
-### Phylogenetic Analysis
-- **IQ-TREE2 integration**: Ultrafast bootstrap, model selection
-- **Ascertainment bias correction**: Essential for SNP-only data
-- **Multiple engines**: RAxML-NG, FastTree for different scales
+### Phylogenetic Tree Construction
 
-### Population Genomics
-- **PCA**: Principal component analysis on genotype matrix
-- **FST**: Weir-Cockerham pairwise population differentiation
-- **IBS**: Identity-by-state distance matrices
-- **LD Decay**: PopLDdecay-style r² decay curves
-- **Kinship**: VanRaden relationship matrix
+Multiple tree-building engines supported:
 
-### Data Handling
-- **Streaming VCF/BCF**: Constant memory footprint
-- **Chunked processing**: Parallel by chromosome
-- **Checkpoint/resume**: Automatic pipeline recovery
-- **Multiple formats**: VCF, BCF, PLINK, HapMap, GDS
+**IQ-TREE2** (recommended):
+- Ultrafast bootstrap approximation (UFBoot)
+- ModelFinder for automatic model selection
+- Ascertainment bias correction for SNP-only data
 
----
+**RAxML-NG**:
+- Optimized for large datasets
+- Bootstrap and ML tree search
 
-## 🧬 Example: Rice 3K Analysis
+**FastTree**:
+- Approximate maximum likelihood
+- Suitable for very large datasets (>1000 samples)
 
-```bash
-# Download demo data
-python examples/download_demo_data.py --dataset rice --samples 50
+### Population Genomics Module
 
-# Run complete pipeline with population structure
-snphylo2 run \
-  -v demo_data/rice_3k_50accessions_chr1.vcf.gz \
-  --metadata demo_data/rice_3k_50accessions_chr1.metadata.tsv \
-  --threads 8 \
-  -o rice_results/
+**Principal Component Analysis (PCA):**
+- Eigen-decomposition on genotype matrix
+- Missing data imputation to mean
+- Population structure visualization
 
-# Generate manuscript figures
-python examples/generate_manuscript_figures.py \
-  demo_data/rice_3k_50accessions_chr1.vcf.gz \
-  --metadata demo_data/rice_3k_50accessions_chr1.metadata.tsv \
-  -o rice_figures/ \
-  --format pdf
-```
+**FST Calculation:**
+- Weir-Cockerham pairwise FST estimator
+- Population differentiation analysis
 
-**Outputs:**
-- `rice_results/snphylo2_output.tree.nwk` - Phylogenetic tree
-- `rice_results/snphylo2_output_report.html` - Interactive report
-- `rice_figures/figure_ld_decay.pdf` - LD decay curves by subpopulation
-- `rice_figures/figure_pca_pc1_pc2.pdf` - PCA with indica/japonica coloring
+**Identity-by-State (IBS):**
+- Pairwise distance matrix calculation
+- Sample relationship inference
 
----
+**LD Decay Analysis:**
+- r2 decay with physical distance (PopLDdecay-style)
+- Half-decay distance calculation
+- Population-stratified analysis
 
-## ☁️ HPC/Cloud Deployment
+**Kinship Matrix:**
+- VanRaden method for relationship estimation
+
+## HPC and Cloud Deployment
 
 ### Nextflow on SLURM
 
 ```bash
 nextflow run workflows/nextflow/main.nf \
-  -profile slurm \
-  --input huge_dataset.vcf.gz \
-  --output results/
+    -profile slurm \
+    --input large_dataset.vcf.gz \
+    --output results/
 ```
 
 ### Snakemake with Conda
 
 ```bash
 snakemake --cores 16 --use-conda \
-  -s workflows/snakemake/Snakefile \
-  --config input=huge_dataset.vcf.gz
+    -s workflows/snakemake/Snakefile \
+    --config input=large_dataset.vcf.gz
 ```
 
-### Docker
+### AWS Batch
 
 ```bash
-docker run -v $(pwd):/data ghcr.io/ank-man/snphylo2:latest \
-  run -v /data/input.vcf.gz -o /data/results
+nextflow run workflows/nextflow/main.nf \
+    -profile aws \
+    --input s3://bucket/dataset.vcf.gz
 ```
 
----
+## Example: Rice 3K Analysis
 
-## 📚 Documentation
+```bash
+# Download demo data
+python examples/download_demo_data.py --dataset rice --samples 50
+
+# Run complete pipeline
+snphylo2 run \
+    -v demo_data/rice_3k_50accessions_chr1.vcf.gz \
+    --metadata demo_data/rice_3k_50accessions_chr1.metadata.tsv \
+    --threads 8 \
+    -o rice_results/
+
+# Generate manuscript figures
+python examples/generate_manuscript_figures.py \
+    demo_data/rice_3k_50accessions_chr1.vcf.gz \
+    --metadata demo_data/rice_3k_50accessions_chr1.metadata.tsv \
+    -o rice_figures/ \
+    --format pdf
+```
+
+**Outputs:**
+- `rice_results/snphylo2_output.tree.nwk` - Phylogenetic tree (Newick format)
+- `rice_results/snphylo2_output_report.html` - Interactive HTML report
+- `rice_figures/figure_ld_decay.pdf` - LD decay curves by subpopulation
+- `rice_figures/figure_pca_pc1_pc2.pdf` - PCA with population coloring
+
+## Documentation
 
 - [Installation Guide](docs/installation.md)
 - [Tutorials](docs/tutorials/)
-- [Configuration](docs/configuration.md)
-- [API Reference](docs/api/)
+- [Configuration Reference](docs/configuration.md)
+- [API Documentation](docs/api/)
 - [Benchmarks](docs/benchmarks.md)
 
----
+## Contributing
 
-## 🤝 Contributing
+Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
-Contributions welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
-
-Areas needing help:
+Priority areas:
 - Additional tree building engines (MrBayes, BEAST)
-- Polyploid support
+- Polyploid support (dosage-aware encoding)
 - Pangenome graph compatibility
-- Cloud deployment guides
+- Cloud deployment guides (AWS, GCP, Azure)
 
----
+## License
 
-## 📄 Citation
+SNPhylo2 is released under the MIT License. See [LICENSE](LICENSE) for details.
 
-If you use SNPhylo2 in your research, please cite:
+## Contact
 
-```bibtex
-@article{snphylo2_2026,
-  title={SNPhylo2: A Scalable, Reproducible, and Population-Aware Pipeline 
-         for Phylogenomic Inference from SNP Data},
-  author={Sharma, Ankush and SNPhylo2 Development Team},
-  journal={Bioinformatics},
-  year={2026},
-  publisher={Oxford University Press}
-}
-```
-
-Also cite the original SNPhylo:
-
-```bibtex
-@article{lee2014snphylo,
-  title={SNPhylo: a pipeline to construct a phylogenetic tree from huge SNP data},
-  author={Lee, Tae-Ho and Guo, Hui and Wang, Xiyin and Kim, Changsoo and Paterson, Andrew H},
-  journal={BMC genomics},
-  volume={15},
-  pages={1--10},
-  year={2014},
-  publisher={Springer}
-}
-```
-
----
-
-## 📬 Contact
-
-- **Issues**: [GitHub Issues](https://github.com/ank-man/snphylo2/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/ank-man/snphylo2/discussions)
+- **Issues**: [github.com/ank-man/snphylo2/issues](https://github.com/ank-man/snphylo2/issues)
+- **Discussions**: [github.com/ank-man/snphylo2/discussions](https://github.com/ank-man/snphylo2/discussions)
 - **Email**: Ankush Sharma (mr.ank2999@gmail.com)
 
 ---
 
-**Made with ❤️ for the phylogenomics community**
+**Developed for the phylogenomics community**
