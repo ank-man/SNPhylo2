@@ -90,10 +90,10 @@ dev = [
 snphylo2 = "snphylo2.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/snphylo2/snphylo2"
+Homepage = "https://github.com/ank-man/snphylo2"
 Documentation = "https://snphylo2.readthedocs.io"
-Repository = "https://github.com/snphylo2/snphylo2"
-"Bug Tracker" = "https://github.com/snphylo2/snphylo2/issues"
+Repository = "https://github.com/ank-man/snphylo2"
+"Bug Tracker" = "https://github.com/ank-man/snphylo2/issues"
 
 [tool.hatch.build.targets.wheel]
 packages = ["snphylo2"]
