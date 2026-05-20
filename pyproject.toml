@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "snphylo2"
 version = "0.1.0"
-description = "Next-generation phylogenomic pipeline from SNP data"
+description = "Next-generation phylogenomic pipeline from SNP data (successor to SNPhylo: https://chibba.agtec.uga.edu/snphylo)"
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.10"

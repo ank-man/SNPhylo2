@@ -76,12 +76,12 @@ about:
   license: MIT
   license_family: MIT
   license_file: LICENSE
-  summary: "Next-generation phylogenomic pipeline from large-scale SNP data"
+  summary: "Next-generation phylogenomic pipeline from large-scale SNP data (successor to SNPhylo)"
   description: |
     SNPhylo2 is a modern, scalable, and reproducible pipeline for constructing 
     phylogenetic trees from large SNP datasets. It represents a complete 
-    reimagining of the original SNPhylo tool for the era of population-scale 
-    resequencing, pangenomics, and cloud computing.
+    reimagining of the original SNPhylo tool (https://chibba.agtec.uga.edu/snphylo)
+    for the era of population-scale resequencing, pangenomics, and cloud computing.
     
     Key features:
     - Process 10,000+ samples and 100M+ SNPs with chunked streaming

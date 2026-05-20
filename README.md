@@ -14,7 +14,9 @@
 
 ## Overview
 
-SNPhylo2 is a next-generation computational pipeline designed for phylogenomic inference from large-scale SNP datasets. This tool addresses the computational challenges of modern population-scale resequencing projects, supporting analyses from thousands to hundreds of thousands of samples with integrated population genomics capabilities.
+SNPhylo2 is a next-generation computational pipeline designed for phylogenomic inference from large-scale SNP datasets. This tool represents a complete redesign of the original [SNPhylo](https://chibba.agtec.uga.edu/snphylo) (Lee et al., 2014) for the era of population-scale resequencing, addressing computational challenges of modern projects with thousands to hundreds of thousands of samples and integrated population genomics capabilities.
+
+**Original SNPhylo**: https://chibba.agtec.uga.edu/snphylo
 
 ### Key Features
 
@@ -279,6 +281,12 @@ Priority areas:
 - Polyploid support (dosage-aware encoding)
 - Pangenome graph compatibility
 - Cloud deployment guides (AWS, GCP, Azure)
+
+## Acknowledgments
+
+SNPhylo2 is built upon the foundation of the original [SNPhylo](https://chibba.agtec.uga.edu/snphylo) tool developed by Tae-Ho Lee and colleagues (Lee et al., 2014, BMC Genomics). We thank the original authors for their pioneering work in automated phylogenomic pipeline development.
+
+**Original SNPhylo Website**: https://chibba.agtec.uga.edu/snphylo
 
 ## License
 

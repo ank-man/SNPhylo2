@@ -7,7 +7,9 @@
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![Docs](https://img.shields.io/badge/docs-mkdocs-blue)](https://snphylo2.readthedocs.io)
 
-SNPhylo2 is a modern, scalable, and reproducible pipeline for constructing phylogenetic trees from large SNP datasets. It represents a complete reimagining of the original [SNPhylo](https://github.com/thlee/SNPhylo) tool for the era of population-scale resequencing, pangenomics, and cloud computing.
+SNPhylo2 is a modern, scalable, and reproducible pipeline for constructing phylogenetic trees from large SNP datasets. It represents a complete reimagining of the original [SNPhylo](https://chibba.agtec.uga.edu/snphylo) (Lee et al., 2014) tool for the era of population-scale resequencing, pangenomics, and cloud computing.
+
+**Original SNPhylo**: https://chibba.agtec.uga.edu/snphylo
 
 ## 🚀 Features
 
