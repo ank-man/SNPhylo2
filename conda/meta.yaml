@@ -1,0 +1,103 @@
+{% set name = "snphylo2" %}
+{% set version = "0.1.0" %}
+{% set sha256 = "PLACEHOLDER_SHA256" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/ank-man/snphylo2/archive/v{{ version }}.tar.gz
+  sha256: {{ sha256 }}
+
+build:
+  number: 0
+  noarch: python
+  entry_points:
+    - snphylo2 = snphylo2.cli:main
+  script: "{{ PYTHON }} -m pip install . --no-deps --ignore-installed -vv"
+
+requirements:
+  host:
+    - python >=3.10
+    - pip
+    - hatchling
+    - hatch-vcs
+  run:
+    - python >=3.10
+    # Core dependencies
+    - click >=8.0
+    - click-option-group >=0.5.3
+    - pydantic >=2.0
+    - pyyaml >=6.0
+    - rich >=13.0
+    - loguru >=0.7.0
+    - toml >=0.10.2
+    # Bioinformatics
+    - cyvcf2 >=0.30.0
+    - numpy >=1.24.0
+    - pandas >=2.0.0
+    - scipy >=1.10.0
+    - scikit-learn >=1.3.0
+    - matplotlib-base >=3.7.0
+    - plotly >=5.15.0
+    - pillow >=10.0.0
+    # External tools (included as dependencies)
+    - iqtree >=2.3.0
+    - plink2 >=2.0
+    - bcftools >=1.19
+    - samtools >=1.19
+    # Optional visualization
+    - r-base >=4.3.0
+    - bioconductor-ggtree >=3.8.0
+    - bioconductor-snprelate >=1.34.0
+    - r-ggplot2 >=3.4.0
+    - r-ape >=5.7.0
+    # Workflow engines (optional but recommended)
+    - nextflow >=23.0
+    - snakemake >=7.0
+
+test:
+  imports:
+    - snphylo2
+    - snphylo2.io
+    - snphylo2.filtering
+    - snphylo2.pruning
+    - snphylo2.tree
+    - snphylo2.population
+    - snphylo2.visualization
+  commands:
+    - snphylo2 --help
+    - snphylo2 --version
+    - python -c "import snphylo2; print(snphylo2.__version__)"
+
+about:
+  home: https://github.com/ank-man/snphylo2
+  license: MIT
+  license_family: MIT
+  license_file: LICENSE
+  summary: "Next-generation phylogenomic pipeline from large-scale SNP data"
+  description: |
+    SNPhylo2 is a modern, scalable, and reproducible pipeline for constructing 
+    phylogenetic trees from large SNP datasets. It represents a complete 
+    reimagining of the original SNPhylo tool for the era of population-scale 
+    resequencing, pangenomics, and cloud computing.
+    
+    Key features:
+    - Process 10,000+ samples and 100M+ SNPs with chunked streaming
+    - Multiple formats: VCF, BCF, PLINK, HapMap, GDS
+    - Modern tree methods: IQ-TREE2, RAxML-NG, FastTree
+    - Population genomics: PCA, FST, IBS, LD decay
+    - Cloud/HPC ready: Nextflow, Snakemake, Docker
+    - Publication-ready: Automated HTML reports
+    
+    SNPhylo2 is released under the MIT license.
+  doc_url: https://snphylo2.readthedocs.io
+  dev_url: https://github.com/ank-man/snphylo2
+  
+extra:
+  recipe-maintainers:
+    - ank-man
+  identifiers:
+    - biotools:snphylo2
+    - doi:10.5281/zenodo.TBD

@@ -1,0 +1,113 @@
+name: Build and Publish Conda Package
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ 'v*' ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Miniconda
+      uses: conda-incubator/setup-miniconda@v3
+      with:
+        auto-update-conda: true
+        python-version: ${{ matrix.python-version }}
+        channels: conda-forge,bioconda,defaults
+        channel-priority: strict
+    
+    - name: Install conda-build
+      shell: bash -l {0}
+      run: |
+        conda install -y conda-build conda-verify anaconda-client
+    
+    - name: Build conda package
+      shell: bash -l {0}
+      run: |
+        cd conda
+        conda build . --output-folder ../conda-build
+    
+    - name: Test conda package
+      shell: bash -l {0}
+      run: |
+        # Install the built package
+        conda install -y --use-local -c ./conda-build snphylo2
+        # Run tests
+        snphylo2 --version
+        snphylo2 --help
+        python -c "import snphylo2; print(snphylo2.__version__)"
+    
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: conda-package-py${{ matrix.python-version }}
+        path: conda-build/**/*.tar.bz2
+
+  publish-to-bioconda:
+    needs: build-linux
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: conda-packages
+        pattern: conda-package-*
+    
+    - name: Display structure
+      run: ls -R conda-packages
+    
+    # Note: For actual Bioconda publication, you need to:
+    # 1. Fork https://github.com/bioconda/bioconda-recipes
+    # 2. Add recipe to recipes/snphylo2/meta.yaml
+    # 3. Submit PR to Bioconda
+    # 
+    # This workflow prepares the recipe but manual PR submission is required
+    # due to Bioconda's review process.
+    
+    - name: Prepare Bioconda Recipe
+      run: |
+        mkdir -p bioconda-recipe
+        cp conda/meta.yaml conda/build.sh conda/bld.bat bioconda-recipe/
+        
+        # Update SHA256 in meta.yaml
+        # This would be automated with the actual release tarball
+        
+        echo "Bioconda recipe prepared in bioconda-recipe/"
+        echo "Submit this to https://github.com/bioconda/bioconda-recipes"
+    
+    - name: Upload Bioconda Recipe
+      uses: actions/upload-artifact@v4
+      with:
+        name: bioconda-recipe
+        path: bioconda-recipe/
+
+  update-repodata:
+    needs: publish-to-bioconda
+    runs-on: ubuntu-latest
+    if: false  # Enable after Bioconda PR is merged
+    
+    steps:
+    - name: Wait for Bioconda indexing
+      run: |
+        echo "Waiting for Bioconda to index new package..."
+        # Bioconda typically indexes within 1-2 hours
+        sleep 7200  # 2 hours
+    
+    - name: Verify package availability
+      run: |
+        conda search -c bioconda snphylo2
