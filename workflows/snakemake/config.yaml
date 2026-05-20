@@ -1,0 +1,27 @@
+# SNPhylo2 Snakemake Configuration
+
+# Input/Output
+input: "input.vcf.gz"  # Path to input VCF file
+output_dir: "results"   # Output directory
+
+# Compute resources
+threads: 4              # Number of threads for local execution
+
+# Filtering parameters
+filtering:
+  maf: 0.05             # Minimum minor allele frequency
+  max_missing: 0.2      # Maximum missingness per SNP
+  min_depth: 5          # Minimum read depth
+  biallelic_only: true  # Keep only biallelic SNPs
+
+# LD pruning parameters
+ld_pruning:
+  window: 50            # Window size (kb or #SNPs)
+  step: 10              # Step size
+  r2: 0.2               # R² threshold
+
+# Tree building parameters
+tree:
+  engine: "iqtree2"     # Tree building engine (iqtree2, raxml_ng, fasttree)
+  model: "GTR+ASC"      # Substitution model
+  bootstrap: 1000       # Number of bootstrap replicates

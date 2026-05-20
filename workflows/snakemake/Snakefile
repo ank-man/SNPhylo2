@@ -1,0 +1,228 @@
+"""
+SNPhylo2 Snakemake Pipeline
+
+A scalable, reproducible workflow for phylogenomic inference from SNP data.
+
+Usage:
+    snakemake --cores 4
+    snakemake --profile profiles/slurm
+"""
+
+import os
+from pathlib import Path
+
+# Configuration
+configfile: "config.yaml" if Path("config.yaml").exists() else {}
+
+# Default configuration
+DEFAULT_CONFIG = {
+    "input": None,
+    "output_dir": "results",
+    "threads": 4,
+    "filtering": {
+        "maf": 0.05,
+        "max_missing": 0.2,
+        "min_depth": 5,
+        "biallelic_only": True,
+    },
+    "ld_pruning": {
+        "window": 50,
+        "step": 10,
+        "r2": 0.2,
+    },
+    "tree": {
+        "engine": "iqtree2",
+        "model": "GTR+ASC",
+        "bootstrap": 1000,
+    },
+}
+
+# Merge with defaults
+for key, value in DEFAULT_CONFIG.items():
+    if key not in config:
+        config[key] = value
+
+# Validate input
+if not config["input"]:
+    raise ValueError("No input file specified. Set 'input' in config.yaml or use --config input=<file>")
+
+input_path = Path(config["input"])
+if not input_path.exists():
+    raise FileNotFoundError(f"Input file not found: {input_path}")
+
+# Define paths
+OUTPUT_DIR = Path(config["output_dir"])
+PREFIX = input_path.stem.replace(".vcf", "").replace(".gz", "")
+
+FILTERED_VCF = OUTPUT_DIR / f"{PREFIX}.filtered.vcf.gz"
+PRUNED_VCF = OUTPUT_DIR / f"{PREFIX}.pruned.vcf.gz"
+TREE_FILE = OUTPUT_DIR / f"{PREFIX}.tree.nwk"
+REPORT_FILE = OUTPUT_DIR / f"{PREFIX}_report.html"
+
+# Final output
+rule all:
+    input:
+        tree=TREE_FILE,
+        report=REPORT_FILE,
+
+# Quality Control
+rule qc:
+    input:
+        vcf=config["input"],
+    output:
+        report=OUTPUT_DIR / "qc_report.html",
+        stats=OUTPUT_DIR / "qc_stats.json",
+    params:
+        threads=min(2, config["threads"]),
+    resources:
+        mem_mb=4000,
+        runtime=60,
+    shell:
+        """
+        snphylo2 qc -v {input.vcf} -o {output.report}
+        echo '{{"step": "qc", "status": "complete"}}' > {output.stats}
+        """
+
+# Filter variants
+rule filter:
+    input:
+        vcf=config["input"],
+    output:
+        vcf=FILTERED_VCF,
+        stats=OUTPUT_DIR / "filter_stats.json",
+    params:
+        maf=config["filtering"]["maf"],
+        max_missing=config["filtering"]["max_missing"],
+        min_depth=config["filtering"]["min_depth"],
+        threads=min(4, config["threads"]),
+    resources:
+        mem_mb=8000,
+        runtime=240,
+    log:
+        OUTPUT_DIR / "logs" / "filter.log",
+    shell:
+        """
+        mkdir -p $(dirname {log})
+        snphylo2 filter \\
+            -v {input.vcf} \\
+            -o {output.vcf} \\
+            --maf {params.maf} \\
+            --max-missing {params.max_missing} \\
+            --min-depth {params.min_depth} \\
+            2>&1 | tee {log}
+        
+        echo '{{"step": "filter", "status": "complete"}}' > {output.stats}
+        """
+
+# LD Pruning
+rule prune:
+    input:
+        vcf=FILTERED_VCF,
+    output:
+        vcf=PRUNED_VCF,
+        stats=OUTPUT_DIR / "prune_stats.json",
+    params:
+        window=config["ld_pruning"]["window"],
+        step=config["ld_pruning"]["step"],
+        r2=config["ld_pruning"]["r2"],
+        threads=min(8, config["threads"]),
+    resources:
+        mem_mb=16000,
+        runtime=480,
+    log:
+        OUTPUT_DIR / "logs" / "prune.log",
+    shell:
+        """
+        snphylo2 prune \\
+            -i {input.vcf} \\
+            -o {output.vcf} \\
+            --window {params.window} \\
+            --step {params.step} \\
+            --r2 {params.r2} \\
+            -t {params.threads} \\
+            2>&1 | tee {log}
+        
+        echo '{{"step": "prune", "status": "complete"}}' > {output.stats}
+        """
+
+# Build tree
+rule tree:
+    input:
+        vcf=PRUNED_VCF,
+    output:
+        tree=TREE_FILE,
+        stats=OUTPUT_DIR / "tree_stats.json",
+    params:
+        engine=config["tree"]["engine"],
+        model=config["tree"]["model"],
+        bootstrap=config["tree"]["bootstrap"],
+        threads=config["threads"],
+    resources:
+        mem_mb=32000,
+        runtime=720,
+    log:
+        OUTPUT_DIR / "logs" / "tree.log",
+    shell:
+        """
+        snphylo2 tree \\
+            -i {input.vcf} \\
+            -o {output.tree} \\
+            --engine {params.engine} \\
+            --model {params.model} \\
+            --bootstrap {params.bootstrap} \\
+            -t {params.threads} \\
+            2>&1 | tee {log}
+        
+        echo '{{"step": "tree", "status": "complete"}}' > {output.stats}
+        """
+
+# Generate report
+rule report:
+    input:
+        qc=OUTPUT_DIR / "qc_report.html",
+        filter=OUTPUT_DIR / "filter_stats.json",
+        prune=OUTPUT_DIR / "prune_stats.json",
+        tree=OUTPUT_DIR / "tree_stats.json",
+        tree_file=TREE_FILE,
+    output:
+        report=REPORT_FILE,
+        stats=OUTPUT_DIR / "final_stats.json",
+    params:
+        output_dir=OUTPUT_DIR,
+    resources:
+        mem_mb=4000,
+        runtime=30,
+    shell:
+        """
+        # Combine stats
+        cat {input.filter} {input.prune} {input.tree} > {output.stats}
+        
+        # Generate report
+        snphylo2 report \\
+            -d {params.output_dir} \\
+            -o {output.report}
+        """
+
+# Clean up intermediate files
+rule clean:
+    shell:
+        """
+        rm -rf {OUTPUT_DIR}
+        rm -rf .snakemake
+        echo "Cleaned up intermediate files"
+        """
+
+# Print configuration
+rule print_config:
+    run:
+        print("=" * 60)
+        print("SNPhylo2 Configuration")
+        print("=" * 60)
+        print(f"Input: {config['input']}")
+        print(f"Output: {config['output_dir']}")
+        print(f"Threads: {config['threads']}")
+        print(f"MAF: {config['filtering']['maf']}")
+        print(f"LD R²: {config['ld_pruning']['r2']}")
+        print(f"Tree engine: {config['tree']['engine']}")
+        print(f"Bootstrap: {config['tree']['bootstrap']}")
+        print("=" * 60)

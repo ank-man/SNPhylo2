@@ -1,0 +1,125 @@
+name: Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    - cron: '0 0 * * 0'  # Weekly on Sunday
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        python-version: ['3.10', '3.11', '3.12']
+        include:
+          - os: ubuntu-latest
+            python-version: '3.11'
+            coverage: true
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Cache pip packages
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('pyproject.toml') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e ".[dev]"
+
+    - name: Install external tools (Ubuntu)
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y plink2 bcftools
+        # Install IQ-TREE2
+        wget -q https://github.com/iqtree/iqtree2/releases/download/v2.3.4/iqtree-2.3.4-Linux.tar.gz
+        tar -xzf iqtree-2.3.4-Linux.tar.gz
+        sudo mv iqtree-2.3.4-Linux/bin/iqtree2 /usr/local/bin/
+
+    - name: Install external tools (macOS)
+      if: runner.os == 'macOS'
+      run: |
+        brew install plink2 bcftools iqtree2
+
+    - name: Run tests with pytest
+      run: |
+        pytest --tb=short -v
+
+    - name: Run tests with coverage
+      if: matrix.coverage
+      run: |
+        pytest --cov=snphylo2 --cov-report=xml --cov-report=html
+
+    - name: Upload coverage to Codecov
+      if: matrix.coverage
+      uses: codecov/codecov-action@v3
+      with:
+        files: ./coverage.xml
+        fail_ci_if_error: false
+        verbose: true
+
+    - name: Check code formatting
+      run: |
+        black --check snphylo2 tests
+        ruff check snphylo2 tests
+
+    - name: Type checking with mypy
+      run: |
+        mypy snphylo2 --ignore-missing-imports
+
+  integration-tests:
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
+    
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e ".[dev]"
+
+    - name: Install all external tools
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y plink2 bcftools samtools
+        wget -q https://github.com/iqtree/iqtree2/releases/download/v2.3.4/iqtree-2.3.4-Linux.tar.gz
+        tar -xzf iqtree-2.3.4-Linux.tar.gz
+        sudo mv iqtree-2.3.4-Linux/bin/iqtree2 /usr/local/bin/
+        wget -q https://github.com/amkozlov/raxml-ng/releases/download/1.2.0/raxml-ng_v1.2.0_linux_x86_64.zip
+        unzip -q raxml-ng_v1.2.0_linux_x86_64.zip
+        sudo mv raxml-ng /usr/local/bin/
+
+    - name: Run integration tests
+      run: |
+        pytest tests/integration -v --tb=short -m "integration"
+
+    - name: Test CLI with real data
+      run: |
+        # Create small test VCF
+        python tests/fixtures/generate_test_vcf.py tests/fixtures/test_data.vcf.gz --samples 10 --snps 100
+        snphylo2 validate
+        snphylo2 run -v tests/fixtures/test_data.vcf.gz -o test_results/ --threads 2
+        test -f test_results/test_data.tree.nwk

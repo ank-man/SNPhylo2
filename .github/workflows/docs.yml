@@ -1,0 +1,56 @@
+name: Documentation
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'docs/**'
+      - 'mkdocs.yml'
+      - '.github/workflows/docs.yml'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        pip install mkdocs mkdocs-material mkdocstrings mkdocstrings-python
+
+    - name: Build documentation
+      run: |
+        mkdocs build --strict
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: documentation
+        path: site/
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        pip install mkdocs mkdocs-material mkdocstrings mkdocstrings-python
+
+    - name: Deploy to GitHub Pages
+      run: |
+        mkdocs gh-deploy --force

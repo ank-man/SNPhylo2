@@ -1,0 +1,71 @@
+name: snphylo2
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  # Python
+  - python>=3.10
+  - pip
+  
+  # Core dependencies
+  - click>=8.1.0
+  - rich>=13.0.0
+  - pydantic>=2.0.0
+  - pyyaml>=6.0
+  - jinja2>=3.1.0
+  - loguru>=0.7.0
+  - tqdm>=4.65.0
+  
+  # Scientific Python
+  - numpy>=1.24.0
+  - scipy>=1.10.0
+  - pandas>=2.0.0
+  - polars>=0.20.0
+  
+  # Bioinformatics
+  - cyvcf2>=0.30.0
+  - pysam>=0.22.0
+  - biopython>=1.81
+  - scikit-allel>=1.3.0
+  - zarr>=2.16.0
+  
+  # Distributed computing
+  - dask>=2023.0.0
+  - distributed>=2023.0.0
+  
+  # Visualization
+  - plotly>=5.15.0
+  - matplotlib>=3.7.0
+  - seaborn>=0.12.0
+  
+  # Machine learning
+  - scikit-learn>=1.3.0
+  
+  # External tools (also installed in Dockerfile)
+  - iqtree>=2.3.0
+  - raxml-ng>=1.2.0
+  - fasttree>=2.1.0
+  - plink2>=2.0
+  - bcftools>=1.19
+  - htslib>=1.19
+  - samtools>=1.19
+  
+  # R and R packages (optional)
+  - r-base>=4.3.0
+  - r-essentials
+  - bioconductor-snprelate
+  - bioconductor-gdsfmt
+  - r-ggplot2
+  - r-ggtree
+  
+  # Pip dependencies
+  - pip:
+    - pydantic-yaml>=1.0.0
+    - kaleido>=0.2.0
+    - ete3>=3.1.0
+    - toytree>=2.0.0
+    - newick>=1.9.0
+    - psutil>=5.9.0
+    - requests>=2.31.0
+    - packaging>=23.0

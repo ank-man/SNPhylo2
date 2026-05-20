@@ -1,0 +1,58 @@
+# SLURM Profile for SNPhylo2
+
+# Execution
+executor: slurm
+jobs: 100
+
+# Default resources
+default-resources:
+  - threads=4
+  - mem_mb=8000
+  - runtime=240
+  - slurm_partition=normal
+  - slurm_account=your_account
+
+# Resource overrides for specific rules
+set-resources:
+  - filter:threads=4
+  - filter:mem_mb=8000
+  - filter:runtime=240
+  - filter:slurm_partition=normal
+  
+  - prune:threads=8
+  - prune:mem_mb=16000
+  - prune:runtime=480
+  - prune:slurm_partition=normal
+  
+  - tree:threads=16
+  - tree:mem_mb=32000
+  - tree:runtime=720
+  - tree:slurm_partition=long
+
+# Cluster configuration
+cluster:
+  mkdir -p logs/{rule} &&
+  sbatch
+    --partition={resources.slurm_partition}
+    --account={resources.slurm_account}
+    --cpus-per-task={threads}
+    --mem={resources.mem_mb}mb
+    --time={resources.runtime}
+    --job-name=smk-{rule}-{wildcards}
+    --output=logs/{rule}/{rule}-{wildcards}-%j.out
+    --parsable
+
+# Restart and error handling
+restart-times: 3
+max-jobs-per-second: 1
+max-status-checks-per-second: 10
+local-cores: 1
+latency-wait: 60
+
+# Scheduler
+scheduler: greedy
+
+# Logging
+keep-going: true
+printshellcmds: true
+show-failed-logs: true

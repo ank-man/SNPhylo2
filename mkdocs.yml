@@ -1,0 +1,112 @@
+site_name: SNPhylo2 Documentation
+site_description: Next-Generation Phylogenomic Pipeline from SNP Data
+site_author: Ankush Sharma
+site_url: https://snphylo2.readthedocs.io
+
+repo_name: snphylo2/snphylo2
+repo_url: https://github.com/snphylo2/snphylo2
+edit_uri: edit/main/docs/
+
+copyright: Copyright &copy; 2026 Ankush Sharma
+
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: teal
+      accent: amber
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: teal
+      accent: amber
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.code.annotate
+    - content.code.copy
+  icon:
+    repo: fontawesome/brands/github
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [snphylo2]
+          options:
+            docstring_style: google
+            show_source: true
+            show_root_heading: true
+            show_category_heading: true
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/snphylo2/snphylo2
+  version:
+    provider: mike
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.tabbed:
+      alternate_style: true
+  - tables
+  - attr_list
+  - pymdownx.emoji:
+      emoji_index: !!python/name:materialx.emoji.twemoji
+      emoji_generator: !!python/name:materialx.emoji.to_svg
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - def_list
+  - pymdownx.arithmatex:
+      generic: true
+
+extra_javascript:
+  - javascripts/mathjax.js
+  - https://polyfill.io/v3/polyfill.min.js?features=es6
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+
+nav:
+  - Home: index.md
+  - Getting Started:
+    - Installation: installation.md
+    - Quick Start: quickstart.md
+    - Configuration: configuration.md
+  - Tutorials:
+    - Basic Usage: tutorials/basic-usage.md
+    - Population Genomics: tutorials/population-genomics.md
+    - HPC/Cloud Deployment: tutorials/hpc-deployment.md
+  - User Guide:
+    - Input Formats: guide/input-formats.md
+    - Filtering: guide/filtering.md
+    - Tree Building: guide/tree-building.md
+    - Visualization: guide/visualization.md
+  - Workflows:
+    - Nextflow: workflows/nextflow.md
+    - Snakemake: workflows/snakemake.md
+  - API Reference:
+    - Overview: api/index.md
+    - Configuration: api/config.md
+    - Pipeline: api/pipeline.md
+    - I/O: api/io.md
+    - Filters: api/filters.md
+    - Tree: api/tree.md
+  - Benchmarks: benchmarks.md
+  - Contributing: contributing.md
+  - Changelog: changelog.md
+  - Citation: citation.md
